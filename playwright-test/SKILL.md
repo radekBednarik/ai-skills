@@ -5,7 +5,7 @@ description: >
   skill when generating, reviewing, or refactoring test code to ensure it
   follows official best practices, uses Page Object Model for pages, components
   and modals, respects DRY and KISS principles, and avoids deprecated APIs.
-allowed-tools: Bash(pnpm:*), Bash(tsc:*), Bash(eslint:*)
+allowed-tools: Bash(pnpm:*), Bash(tsc:*), Bash(eslint:*), Bash(prettier:*)
 ---
 
 # Playwright Test Best Practices
@@ -32,7 +32,7 @@ await expect(page.locator(".welcome-heading.text-xl")).toBeVisible();
 
 Every test must run independently with its own browser context, local storage, session storage, cookies and data. Tests must never share mutable state or depend on execution order.
 
-Use `test.beforeEach` for shared setup (navigation, login). Use Playwright's [setup project](https://playwright.dev/docs/auth#basic-shared-account-in-all-tests) to reuse authenticated state across tests without repeating login steps in every file.
+Use `test.beforeEach` for shared setup (navigation, login). Use Playwright's [recommended approaches](https://playwright.dev/docs/auth#introduction) to reuse authenticated state across tests without repeating login steps in every file.
 
 ```typescript
 import { test } from "@playwright/test";
@@ -409,6 +409,22 @@ Tests across files run in parallel by default. To run tests within a single file
 test.describe.configure({ mode: "parallel" });
 ```
 
+Be careful, whether the test user can be shared across tests (if fully parallel mode is on), or across test files, since they may be collisions, if tests are modifying backend state.
+
+If this situation occurs, structure test files in such a way, that each test file uses distinct test client and full parallel mode within these test files is turned off.
+
+```typescript
+test.describe.configure({ mode: "serial" });
+```
+
+### Test users
+
+Test users are to be specified as Typescript objects in a shared file (e.g. `src/test-users.ts`) and imported where needed. Never hardcode test user credentials directly in test files.
+
+```typescript
+import { testUsers } from "../test-users";
+```
+
 ---
 
 ## 8. TypeScript Rules
@@ -426,6 +442,7 @@ All generated code must comply with the project's strict TypeScript configuratio
 - All code paths in a function must return explicitly (`noImplicitReturns`).
 - Never assign `undefined` to optional properties explicitly (`exactOptionalPropertyTypes`).
 - Return type annotations are recommended on POM methods for clarity.
+- Use path aliasing for imports if configured (e.g. `@pages/LoginPage` instead of `../pages/LoginPage`).
 
 ---
 
